@@ -2,6 +2,17 @@
 
 Aplikasi web untuk **merancang sistem IoT secara visual lalu menyimulasikannya di browser**: taruh sensor dan aktuator di kanvas, sambungkan dengan kabel, atur aturannya, tekan **Run**, dan lihat nilainya berubah secara langsung.
 
+## Status
+
+| # | Milestone | Status |
+| --- | --- | --- |
+| M0 | Kerangka repo | Selesai (CI menjalankan test dan build) |
+| M1 | Editor | Selesai |
+| M2 | Simulasi | Selesai. Berjalan di thread utama, belum di Web Worker; cukup untuk rangkaian kecil, dan engine-nya sudah terpisah dari UI sehingga mudah dipindah |
+| M3 | Backend proyek | Belum. Sementara proyek disimpan di browser dan bisa diekspor/impor |
+| M4 | Akun | Belum (ditunda) |
+| M5 | Rilis v0.1 | Belum |
+
 ## 1. Target MVP (v0.1)
 
 Satu alur yang harus jalan dari awal sampai akhir:
