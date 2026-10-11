@@ -1,7 +1,21 @@
-/bin/
-*.exe
+# Dependencies and build output
+node_modules/
+dist/
+/server/bin/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Go
 *.test
 *.out
+
+# Logs
+*.log
+
+# Editors and OS
 .DS_Store
 .idea/
 .vscode/
