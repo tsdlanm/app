@@ -7,6 +7,7 @@ import Palette from '../editor/Palette'
 import PropertiesPanel from '../editor/PropertiesPanel'
 import { useEditor } from '../editor/store'
 import Toolbar from '../editor/Toolbar'
+import Toasts from '../ui/Toasts'
 
 function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName))
@@ -36,6 +37,7 @@ export default function EditorPage() {
         <Palette />
         <Canvas />
         <PropertiesPanel />
+        <Toasts />
       </div>
     </ReactFlowProvider>
   )

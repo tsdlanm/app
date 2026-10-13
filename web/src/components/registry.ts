@@ -1,4 +1,6 @@
-import type { Category, ComponentDef, Props, PropDef, StepContext, Value } from './types'
+import { compileCached, execute, MAX_PROGRAM_LENGTH, type PinSpec } from '../sim/firmware'
+import { ESP32, PICO, UNO } from './boards'
+import type { BoardLayout, Category, ComponentDef, Props, PropDef, StepContext, Value } from './types'
 
 const num = (props: Props, key: string, fallback = 0): number => {
   const v = props[key]
@@ -73,9 +75,73 @@ function analogSensorDef(
   }
 }
 
+
+const UNO_PROGRAM = `# A0 = suhu (angka), D2..D7 = masukan ya/tidak, D8..D13 = keluaran.
+# Kipas di D13 menyala kalau suhu di atas 30.
+D13 = A0 > 30
+# D12 berkedip tiap 2 detik sebagai penanda papan hidup.
+D12 = time % 2 < 1
+`
+
+const ESP32_PROGRAM = `# D34 = sensor cahaya (angka), D25..D27 dan D14 = masukan ya/tidak.
+# Lampu di D4 menyala saat gelap.
+D4 = D34 < 300
+# Buzzer di D5 bunyi kalau tombol ditekan dan ada gerakan.
+D5 = D25 and D26
+# LED bawaan papan (D2) mengikuti lampu.
+D2 = D4
+`
+
+const PICO_PROGRAM = `# GP0..GP5 = masukan ya/tidak, GP26..GP28 = masukan angka.
+# GP6..GP22 = keluaran.
+# GP22 berkedip: nyala 0,5 detik tiap 1 detik.
+GP22 = time % 1 < 0.5
+# GP21 mengikuti tombol di GP0.
+GP21 = GP0
+`
+
+/** The pins a board's program can read and write, taken from its layout. */
+export function pinSpec(board: BoardLayout): PinSpec {
+  return {
+    inputs: Object.fromEntries(
+      board.pins.filter((p) => p.role === 'in-num' || p.role === 'in-bool').map((p) => [p.id, p.role === 'in-num' ? 'number' : 'boolean']),
+    ),
+    outputs: board.pins.filter((p) => p.role === 'out').map((p) => p.id),
+  }
+}
+
+function boardDef(kind: string, label: string, description: string, board: BoardLayout, program: string): ComponentDef {
+  const pins = pinSpec(board)
+  return {
+    kind,
+    label,
+    category: 'mcu',
+    icon: '🔲',
+    description,
+    view: 'board',
+    board,
+    inputs: board.pins
+      .filter((p) => p.role === 'in-num' || p.role === 'in-bool')
+      .map((p) => ({ id: p.id, label: p.label, type: p.role === 'in-num' ? ('number' as const) : ('boolean' as const) })),
+    outputs: board.pins.filter((p) => p.role === 'out').map((p) => ({ id: p.id, label: p.label, type: 'boolean' as const })),
+    props: [{ key: 'program', label: 'Program', type: 'code', default: program, rows: 10 }],
+    step: (ctx) => {
+      const source = typeof ctx.props.program === 'string' ? ctx.props.program : ''
+      return execute(compileCached(kind, source, pins), pins, ctx.inputs, ctx.time / 1000)
+    },
+  }
+}
+
+export const MCU_PROGRAM_LIMIT = MAX_PROGRAM_LENGTH
+
 const bool = (id: string, label: string) => ({ id, label, type: 'boolean' as const })
 
 export const COMPONENTS: ComponentDef[] = [
+  // Microcontroller boards
+  boardDef('mcu-uno', 'Arduino Uno', 'Papan Arduino Uno R3 (ATmega328P). Pin analog A0 sampai A5, digital D2 sampai D13.', UNO, UNO_PROGRAM),
+  boardDef('mcu-esp32', 'ESP32 DevKit', 'ESP32 DevKit V1 30 pin. Enam masukan analog dan 13 pin keluaran.', ESP32, ESP32_PROGRAM),
+  boardDef('mcu-pico', 'Raspberry Pi Pico', 'Raspberry Pi Pico (RP2040) dengan 40 pin. Tiga masukan analog GP26 sampai GP28.', PICO, PICO_PROGRAM),
+
   // Sensors
   analogSensorDef('temp-sensor', 'Sensor suhu', '🌡️', '°C', 'Menghasilkan suhu dalam derajat Celsius.', 20, 40, 30),
   analogSensorDef('humidity-sensor', 'Sensor kelembapan', '💧', '%', 'Menghasilkan kelembapan relatif.', 30, 90, 40),
@@ -304,6 +370,7 @@ const byKind = new Map(COMPONENTS.map((c) => [c.kind, c]))
 export const getDef = (kind: string): ComponentDef | undefined => byKind.get(kind)
 
 export const CATEGORIES: { id: Category; label: string }[] = [
+  { id: 'mcu', label: 'Mikrokontroler' },
   { id: 'sensor', label: 'Sensor' },
   { id: 'logic', label: 'Logika' },
   { id: 'actuator', label: 'Aktuator' },

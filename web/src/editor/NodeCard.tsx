@@ -1,7 +1,8 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { memo } from 'react'
+import { memo, type CSSProperties } from 'react'
+import BoardArt from '../components/boards/BoardArt'
 import { getDef } from '../components/registry'
-import type { ComponentDef, PortDef } from '../components/types'
+import type { BoardPin, ComponentDef, PortDef } from '../components/types'
 import { useSim } from '../sim/runner'
 import { useEditor, type IotNode } from './store'
 
@@ -63,6 +64,8 @@ function Body({ id, def, props }: { id: string; def: ComponentDef; props: Record
   const on = input === true
 
   switch (def.view) {
+    case 'board':
+      return null
     case 'analog':
       return <div className="readout">{fmt(out, def.unit)}</div>
     case 'digital': {
@@ -108,9 +111,57 @@ function Body({ id, def, props }: { id: string; def: ComponentDef; props: Record
   }
 }
 
+
+const SIDE: Record<BoardPin['side'], Position> = {
+  top: Position.Top,
+  bottom: Position.Bottom,
+  left: Position.Left,
+  right: Position.Right,
+}
+
+const ROLE_TEXT: Record<string, string> = {
+  'in-num': 'masukan angka',
+  'in-bool': 'masukan ya/tidak',
+  out: 'keluaran',
+}
+
+/** A microcontroller: the real board artwork with a wire handle sitting on each usable pin. */
+function BoardCard({ id, def, selected }: { id: string; def: ComponentDef; selected: boolean }) {
+  const values = useSim((s) => s.values[id])
+  const running = useSim((s) => s.status === 'running')
+  const board = def.board!
+
+  return (
+    <div className={`board-node ${selected ? 'node-selected' : ''}`} style={{ width: board.width, height: board.height }}>
+      <BoardArt kind={def.kind} running={running} outputs={values?.outputs} />
+      {board.pins
+        .filter((p) => p.role === 'in-num' || p.role === 'in-bool' || p.role === 'out')
+        .map((p) => {
+          const isOut = p.role === 'out'
+          const v = isOut ? values?.outputs[p.id] : values?.inputs[p.id]
+          const on = v === true || typeof v === 'number'
+          // React Flow positions handles with CSS per side; pin the centre explicitly instead.
+          const style: CSSProperties = { left: p.x, top: p.y, right: 'auto', bottom: 'auto', transform: 'translate(-50%, -50%)' }
+          return (
+            <Handle
+              key={p.id}
+              id={p.id}
+              type={isOut ? 'source' : 'target'}
+              position={SIDE[p.side]}
+              className={`pin pin-${isOut ? 'out' : 'in'} port-${p.role === 'in-num' ? 'number' : 'boolean'} ${on ? 'pin-on' : ''}`}
+              style={style}
+              title={`${p.id}: ${ROLE_TEXT[p.role]}${v === undefined ? '' : ` = ${typeof v === 'number' ? v.toFixed(1) : v ? 'ON' : 'OFF'}`}`}
+            />
+          )
+        })}
+    </div>
+  )
+}
+
 function NodeCard({ id, data, selected }: NodeProps<IotNode>) {
   const def = getDef(data.kind)
   if (!def) return <div className="node node-unknown">Komponen tidak dikenal: {data.kind}</div>
+  if (def.view === 'board' && def.board) return <BoardCard id={id} def={def} selected={selected} />
 
   const rows = Math.max(def.inputs.length, def.outputs.length)
   return (

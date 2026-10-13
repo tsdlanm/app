@@ -9,11 +9,36 @@ Aplikasi web untuk merancang sistem IoT secara visual lalu menyimulasikannya lan
 
 - Kanvas: seret komponen dari palet (atau klik untuk menambah), tarik kabel dari titik keluaran ke titik masukan, geser, hapus
 - Kabel divalidasi: tipe harus cocok (angka ke angka, ya/tidak ke ya/tidak), satu kabel per masukan, tanpa loop
-- 15 komponen: sensor (suhu, kelembapan, cahaya, gerak, tombol), logika (pembanding, AND, OR, NOT, timer), aktuator (LED, kipas, buzzer), tampilan (gauge, grafik)
+- **3 papan mikrokontroler dengan gambar dan pin asli:** Arduino Uno, ESP32 DevKit (30 pin), Raspberry Pi Pico (40 pin). Tiap papan diprogram dengan bahasa mini (lihat di bawah)
+- 15 komponen lain: sensor (suhu, kelembapan, cahaya, gerak, tombol), logika (pembanding, AND, OR, NOT, timer), aktuator (LED, kipas, buzzer), tampilan (gauge, grafik)
 - Panel properti untuk mengatur tiap komponen
 - Simulasi Run / Pause / Reset dengan kecepatan 1×, 2×, 5×; pengeditan saat berjalan langsung berlaku
-- Undo / redo (Ctrl+Z, Ctrl+Shift+Z), simpan otomatis di browser, ekspor/impor file `.iot.json`
+- Undo / redo (Ctrl+Z, Ctrl+Shift+Z), simpan otomatis di browser, ekspor/impor file `.iot.json`, empat contoh rangkaian, pencarian komponen
+- Kabel yang ditolak menjelaskan alasannya (tipe tidak cocok, masukan sudah terpakai, membentuk loop)
 - Tanpa akun
+
+## Papan mikrokontroler
+
+Sambungkan sensor ke pin masukan papan (bulat), dan pin keluaran (kotak) ke aktuator. Pin yang menyala hijau sedang aktif.
+
+| Papan | Masukan angka | Masukan ya/tidak | Keluaran |
+| --- | --- | --- | --- |
+| Arduino Uno | A0–A5 | D2–D7 | D8–D13 |
+| ESP32 DevKit | VP, VN, D34, D35, D32, D33 | D25, D26, D27, D14 | D12, D13, D23, D22, D21, D19, D18, D5, D17, D16, D4, D2, D15 |
+| Raspberry Pi Pico | GP26, GP27, GP28 | GP0–GP5 | GP6–GP15, GP16–GP22 |
+
+Pin daya (5V, 3V3, GND, VIN) dan pin khusus (SCL, SDA, TX, RX, dll.) digambar sesuai papan aslinya tetapi belum bisa disambung.
+
+Program ditulis di panel properti, satu perintah per baris:
+
+```
+# A0 = suhu. Kipas di D13 menyala di atas 30.
+D13 = A0 > 30
+# D12 berkedip tiap 2 detik.
+D12 = time % 2 < 1
+```
+
+Operator `+ - * / %`, `> >= < <= == !=`, `and or not`, dan kurung. `time` adalah waktu simulasi dalam detik. Hanya pin keluaran yang bisa diisi. Program diurai sendiri, tanpa `eval`. Ini bukan kode Arduino atau MicroPython sungguhan; emulasi kode asli (`avr8js`) ada di rencana berikutnya.
 
 Rencana lengkap dan yang belum dikerjakan ada di [docs/BLUEPRINT.md](docs/BLUEPRINT.md).
 
@@ -41,8 +66,10 @@ cd server && go run ./cmd/server     # API di localhost:8080, GET /api/health
 ```
 web/src/
   components/   definisi komponen IoT (port, properti, perilaku)
-  sim/          engine simulasi dan runner
+    boards/     gambar SVG papan mikrokontroler
+  sim/          engine simulasi, runner, dan bahasa program papan (firmware.ts)
   editor/       kanvas, palet, panel properti, toolbar, store, penyimpanan
+  ui/           ikon dan notifikasi
   pages/        halaman editor
 server/         Go API (kerangka)
 docs/           blueprint

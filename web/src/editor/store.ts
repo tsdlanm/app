@@ -102,19 +102,7 @@ export const useEditor = create<EditorState>((set, get) => {
       set((s) => ({ edges: applyEdgeChanges(changes, s.edges) }))
     },
 
-    isValidConnection: (c) => {
-      const { nodes, edges } = get()
-      if (!c.source || !c.target || !c.sourceHandle || !c.targetHandle) return false
-      const src = nodes.find((n) => n.id === c.source)
-      const dst = nodes.find((n) => n.id === c.target)
-      const srcDef = src && getDef(src.data.kind)
-      const dstDef = dst && getDef(dst.data.kind)
-      const out = srcDef?.outputs.find((p) => p.id === c.sourceHandle)
-      const inp = dstDef?.inputs.find((p) => p.id === c.targetHandle)
-      if (!out || !inp || out.type !== inp.type) return false
-      if (edges.some((e) => e.target === c.target && e.targetHandle === c.targetHandle)) return false
-      return !wouldCreateCycle(edges, c.source, c.target)
-    },
+    isValidConnection: (c) => connectionProblem(c) === null,
 
     onConnect: (c) => {
       if (!get().isValidConnection(c)) return
@@ -190,3 +178,26 @@ export const useEditor = create<EditorState>((set, get) => {
     },
   }
 })
+
+const typeName = (t: 'number' | 'boolean') => (t === 'number' ? 'angka' : 'ya/tidak')
+
+/** Why a wire cannot be made, in plain language, or null if it is allowed. */
+export function connectionProblem(c: Connection | Edge): string | null {
+  const { nodes, edges } = useEditor.getState()
+  if (!c.source || !c.target || !c.sourceHandle || !c.targetHandle) return 'Sambungkan dari titik keluaran ke titik masukan'
+  if (c.source === c.target) return 'Tidak bisa menyambung ke komponen yang sama'
+
+  const src = nodes.find((n) => n.id === c.source)
+  const dst = nodes.find((n) => n.id === c.target)
+  const out = src && getDef(src.data.kind)?.outputs.find((p) => p.id === c.sourceHandle)
+  const inp = dst && getDef(dst.data.kind)?.inputs.find((p) => p.id === c.targetHandle)
+  if (!out || !inp) return 'Sambungkan dari titik keluaran ke titik masukan'
+  if (out.type !== inp.type) {
+    return `Tipe tidak cocok: ${out.label} (${typeName(out.type)}) tidak bisa masuk ke ${inp.label} (${typeName(inp.type)})`
+  }
+  if (edges.some((e) => e.target === c.target && e.targetHandle === c.targetHandle)) {
+    return `${inp.label} sudah punya kabel. Hapus kabel lama dulu`
+  }
+  if (wouldCreateCycle(edges, c.source, c.target)) return 'Kabel ini membuat putaran (loop), dan loop belum didukung'
+  return null
+}

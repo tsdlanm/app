@@ -9,6 +9,7 @@ Aplikasi web untuk **merancang sistem IoT secara visual lalu menyimulasikannya d
 | M0 | Kerangka repo | Selesai (CI menjalankan test dan build) |
 | M1 | Editor | Selesai |
 | M2 | Simulasi | Selesai. Berjalan di thread utama, belum di Web Worker; cukup untuk rangkaian kecil, dan engine-nya sudah terpisah dari UI sehingga mudah dipindah |
+| M1+ | Papan mikrokontroler | Selesai: Arduino Uno, ESP32, Raspberry Pi Pico dengan gambar dan pin asli, diprogram lewat bahasa mini. Belum ada emulasi kode Arduino/MicroPython asli, validasi daya (VCC/GND), dan komponen sensor/aktuator berwujud asli |
 | M3 | Backend proyek | Belum. Sementara proyek disimpan di browser dan bisa diekspor/impor |
 | M4 | Akun | Belum (ditunda) |
 | M5 | Rilis v0.1 | Belum |

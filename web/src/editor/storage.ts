@@ -24,7 +24,8 @@ export function downloadProject(project: Project) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `${project.name.trim().replace(/[^\w-]+/g, '-').toLowerCase() || 'proyek'}.iot.json`
+  const slug = project.name.trim().replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()
+  a.download = `${slug || 'proyek'}.iot.json`
   a.click()
   URL.revokeObjectURL(url)
 }

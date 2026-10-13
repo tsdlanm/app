@@ -121,3 +121,71 @@ describe('graph helpers', () => {
     expect(wouldCreateCycle(edges, 'a', 'a')).toBe(true)
   })
 })
+
+describe('microcontroller boards', () => {
+  it('runs the Uno program: analog in, digital out', () => {
+    const graph: Graph = {
+      nodes: [
+        node('t', 'temp-sensor', { pattern: 'constant', min: 40, max: 40 }),
+        node('u', 'mcu-uno'),
+        node('f', 'fan'),
+      ],
+      edges: [edge('t', 'out', 'u', 'A0'), edge('u', 'D13', 'f', 'in')],
+    }
+    const state = createEngineState()
+    stepEngine(graph, state, 100)
+    expect(state.values.u.inputs.A0).toBe(40)
+    expect(state.values.u.outputs.D13).toBe(true)
+    expect(state.values.f.inputs.in).toBe(true)
+
+    graph.nodes[0].props.min = 10
+    graph.nodes[0].props.max = 10
+    stepEngine(graph, state, 100)
+    expect(state.values.f.inputs.in).toBe(false)
+  })
+
+  it('blinks D12 from simulated time', () => {
+    const graph: Graph = { nodes: [node('u', 'mcu-uno')], edges: [] }
+    const state = createEngineState()
+    const seen = new Set<boolean>()
+    for (let i = 0; i < 40; i++) {
+      stepEngine(graph, state, 100)
+      seen.add(state.values.u.outputs.D12 as boolean)
+    }
+    expect(seen).toEqual(new Set([true, false]))
+  })
+
+  it('reads boolean inputs on the ESP32 and drives several outputs', () => {
+    const graph: Graph = {
+      nodes: [
+        node('b', 'button', { pressed: true }),
+        node('p', 'button', { pressed: true }),
+        node('e', 'mcu-esp32'),
+        node('z', 'buzzer'),
+      ],
+      edges: [edge('b', 'out', 'e', 'D25'), edge('p', 'out', 'e', 'D26'), edge('e', 'D5', 'z', 'in')],
+    }
+    const state = createEngineState()
+    stepEngine(graph, state, 100)
+    expect(state.values.e.outputs.D5).toBe(true)
+    graph.nodes[1].props.pressed = false
+    stepEngine(graph, state, 100)
+    expect(state.values.e.outputs.D5).toBe(false)
+  })
+
+  it('runs the Pico program and ignores a broken program line without crashing', () => {
+    const graph: Graph = { nodes: [node('p', 'mcu-pico', { program: 'GP22 = true\nthis is not valid\nGP21 = 1 +' })], edges: [] }
+    const state = createEngineState()
+    stepEngine(graph, state, 100)
+    expect(state.values.p.outputs.GP22).toBe(true)
+    expect(state.values.p.outputs.GP21).toBe(false)
+  })
+
+  it('refuses wires from a number output into a boolean pin', () => {
+    // D13 is boolean, so the Uno cannot feed an analog-only input such as a gauge.
+    const graph: Graph = { nodes: [node('u', 'mcu-uno'), node('g', 'gauge')], edges: [edge('u', 'D13', 'g', 'in')] }
+    const state = createEngineState()
+    stepEngine(graph, state, 100)
+    expect(state.values.g.inputs.in).toBeUndefined()
+  })
+})

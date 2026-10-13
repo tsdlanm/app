@@ -5,6 +5,9 @@ import type { IotNode } from './store'
 
 export const PROJECT_VERSION = 1
 
+/** Longest string property accepted from a file; guards against huge or hostile projects. */
+const MAX_PROP_LENGTH = 5000
+
 export interface Project {
   version: number
   name: string
@@ -48,7 +51,11 @@ export function parseProject(raw: unknown): Project | null {
     const props: Props = {}
     for (const p of def.props) {
       const v = given[p.key]
-      props[p.key] = typeof v === typeof p.default && (typeof v !== 'number' || Number.isFinite(v)) ? (v as Props[string]) : p.default
+      const ok =
+        typeof v === typeof p.default &&
+        (typeof v !== 'number' || Number.isFinite(v)) &&
+        (typeof v !== 'string' || v.length <= MAX_PROP_LENGTH)
+      props[p.key] = ok ? (v as Props[string]) : p.default
     }
     nodes.push({ id: n.id, kind: n.kind, x: n.x, y: n.y, props })
   }

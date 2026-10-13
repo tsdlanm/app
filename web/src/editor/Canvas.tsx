@@ -3,18 +3,24 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  Panel,
   ReactFlow,
   useReactFlow,
   type Edge,
+  type FinalConnectionState,
   type NodeTypes,
 } from '@xyflow/react'
-import { useMemo, type DragEvent } from 'react'
+import { useCallback, useMemo, type DragEvent } from 'react'
+import { getDef } from '../components/registry'
 import { useSim } from '../sim/runner'
+import { toast } from '../ui/toast'
 import NodeCard from './NodeCard'
 import { DRAG_MIME } from './Palette'
-import { useEditor } from './store'
+import { connectionProblem, useEditor, type IotNode } from './store'
 
 const nodeTypes: NodeTypes = { iot: NodeCard }
+
+const nodeColor = (n: IotNode) => `var(--cat-${getDef(n.data.kind)?.category ?? 'sensor'})`
 
 export default function Canvas() {
   const nodes = useEditor((s) => s.nodes)
@@ -39,6 +45,22 @@ export default function Canvas() {
     })
   }, [edges, values, status])
 
+  // Dropping a wire on an unsuitable pin used to do nothing; say why instead.
+  const onConnectEnd = useCallback((_: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+    const { fromHandle: from, toHandle: to } = state
+    if (state.isValid !== false || !from || !to || !from.id || !to.id) return
+    if (from.type === to.type) {
+      toast.error('Sambungkan dari titik keluaran ke titik masukan')
+      return
+    }
+    const wire =
+      from.type === 'source'
+        ? { source: from.nodeId, sourceHandle: from.id, target: to.nodeId, targetHandle: to.id }
+        : { source: to.nodeId, sourceHandle: to.id, target: from.nodeId, targetHandle: from.id }
+    const problem = connectionProblem(wire)
+    if (problem) toast.error(problem)
+  }, [])
+
   const onDragOver = (e: DragEvent) => {
     if (!e.dataTransfer.types.includes(DRAG_MIME)) return
     e.preventDefault()
@@ -61,6 +83,7 @@ export default function Canvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
         isValidConnection={isValidConnection}
         onNodeDragStart={beginDrag}
         colorMode="system"
@@ -71,7 +94,10 @@ export default function Canvas() {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} />
         <Controls />
-        <MiniMap pannable zoomable />
+        <MiniMap pannable zoomable nodeColor={nodeColor} nodeStrokeWidth={0} />
+        <Panel position="top-left" className="stats">
+          {nodes.length} komponen · {edges.length} kabel
+        </Panel>
       </ReactFlow>
       {nodes.length === 0 && (
         <div className="empty">
