@@ -4,6 +4,7 @@ import BoardArt from '../components/boards/BoardArt'
 import { getDef } from '../components/registry'
 import type { BoardPin, ComponentDef, PortDef } from '../components/types'
 import { useSim } from '../sim/runner'
+import ComponentIcon from '../ui/ComponentIcon'
 import { useEditor, type IotNode } from './store'
 
 const portTop = (i: number, n: number) => `${((i + 1) / (n + 1)) * 100}%`
@@ -91,9 +92,17 @@ function Body({ id, def, props }: { id: string; def: ComponentDef; props: Record
     case 'led':
       return <div className={`led led-${String(props.color)} ${on ? 'led-on' : ''}`} aria-label={on ? 'LED menyala' : 'LED mati'} />
     case 'fan':
-      return <div className={`fan ${on ? 'fan-on' : ''}`} aria-label={on ? 'Kipas berputar' : 'Kipas mati'}>🌀</div>
+      return (
+        <div className={`fan ${on ? 'fan-on' : ''}`} role="img" aria-label={on ? 'Kipas berputar' : 'Kipas mati'}>
+          <ComponentIcon kind="fan" size={30} />
+        </div>
+      )
     case 'buzzer':
-      return <div className={`buzzer ${on ? 'buzzer-on' : ''}`} aria-label={on ? 'Buzzer berbunyi' : 'Buzzer diam'}>🔔</div>
+      return (
+        <div className={`buzzer ${on ? 'buzzer-on' : ''}`} role="img" aria-label={on ? 'Buzzer berbunyi' : 'Buzzer diam'}>
+          <ComponentIcon kind="buzzer" size={28} />
+        </div>
+      )
     case 'gauge': {
       const min = Number(props.min)
       const max = Number(props.max)
@@ -168,7 +177,8 @@ function NodeCard({ id, data, selected }: NodeProps<IotNode>) {
     <div className={`node cat-${def.category} ${selected ? 'node-selected' : ''}`} style={{ minHeight: 56 + rows * 14 }}>
       <Ports ports={def.inputs} side="in" />
       <div className="node-head">
-        <span aria-hidden="true">{def.icon}</span> {def.label}
+        <ComponentIcon kind={def.kind} size={15} className="node-icon" />
+        <span>{def.label}</span>
       </div>
       <div className={`node-body ${def.inputs.length > 1 ? 'pad-in' : ''}`}>
         <Body id={id} def={def} props={data.props} />

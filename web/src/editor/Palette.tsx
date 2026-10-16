@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import BoardArt from '../components/boards/BoardArt'
 import { CATEGORIES, COMPONENTS } from '../components/registry'
 import type { ComponentDef } from '../components/types'
+import ComponentIcon from '../ui/ComponentIcon'
 import Icon from '../ui/Icon'
 import { useEditor } from './store'
 
@@ -38,18 +39,11 @@ export default function Palette() {
   }
 
   return (
-    <aside className="palette" aria-label="Daftar komponen">
+    <div className="palette-inner">
       <div className="search">
-        <Icon name="search" size={15} />
-        <input
-          type="search"
-          placeholder="Cari komponen"
-          aria-label="Cari komponen"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <Icon name="search" size={14} />
+        <input type="search" placeholder="Cari komponen" aria-label="Cari komponen" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
-      <p className="hint">Seret ke kanvas, atau klik untuk menambah.</p>
 
       {groups.length === 0 && <p className="hint">Tidak ada komponen untuk "{query}".</p>}
 
@@ -57,17 +51,11 @@ export default function Palette() {
         const open = q !== '' || !closed[g.id]
         return (
           <section key={g.id} className={`group-${g.id}`}>
-            <button
-              type="button"
-              className="group-head"
-              aria-expanded={open}
-              onClick={() => setClosed((c) => ({ ...c, [g.id]: open }))}
-            >
+            <button type="button" className="group-head" aria-expanded={open} onClick={() => setClosed((c) => ({ ...c, [g.id]: open }))}>
               <span className={`chevron ${open ? '' : 'chevron-closed'}`}>
-                <Icon name="chevron" size={14} />
+                <Icon name="chevron" size={12} />
               </span>
               {g.label}
-              <span className="count">{g.items.length}</span>
             </button>
             {open && (
               <ul>
@@ -86,7 +74,7 @@ export default function Palette() {
                       onClick={() => addAtCentre(c.kind)}
                     >
                       <span className="thumb" aria-hidden="true">
-                        {c.view === 'board' ? <BoardArt kind={c.kind} /> : c.icon}
+                        {c.view === 'board' ? <BoardArt kind={c.kind} /> : <ComponentIcon kind={c.kind} size={18} />}
                       </span>
                       <span className="item-text">
                         <span className="item-name">{c.label}</span>
@@ -100,6 +88,6 @@ export default function Palette() {
           </section>
         )
       })}
-    </aside>
+    </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { SPEEDS, useSim } from '../sim/runner'
 import Icon from '../ui/Icon'
+import { useLayout } from '../ui/layout'
 import { toast } from '../ui/toast'
 import { EXAMPLES } from './example'
 import { parseProject, toProject, type Project } from './serialize'
@@ -17,6 +18,7 @@ export default function Toolbar() {
   const load = useEditor((s) => s.load)
   const clear = useEditor((s) => s.clear)
   const { status, speed, time, start, pause, reset, setSpeed } = useSim()
+  const { leftOpen, rightOpen, toggleLeft, toggleRight } = useLayout()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const replaceProject = (p: Project) => {
@@ -40,17 +42,16 @@ export default function Toolbar() {
 
   return (
     <header className="toolbar">
-      <div className="brand" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 32 32">
-          <rect width="32" height="32" rx="7" fill="currentColor" />
-          <g fill="#fff">
-            <circle cx="9" cy="16" r="3" />
-            <circle cx="23" cy="9" r="3" />
-            <circle cx="23" cy="23" r="3" />
-          </g>
-          <path d="M12 16h4l4-7M16 16l4 7" stroke="#fff" strokeWidth="2" fill="none" />
-        </svg>
-      </div>
+      <button
+        type="button"
+        className={`btn btn-icon ${leftOpen ? 'is-on' : ''}`}
+        onClick={toggleLeft}
+        aria-pressed={leftOpen}
+        aria-label="Panel komponen"
+        title={`${leftOpen ? 'Tutup' : 'Buka'} panel komponen ( [ )`}
+      >
+        <Icon name="panelLeft" />
+      </button>
       <input className="name" aria-label="Nama proyek" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
 
       <div className="group" role="group" aria-label="Riwayat">
@@ -72,12 +73,11 @@ export default function Toolbar() {
             <Icon name="play" /> {status === 'paused' ? 'Lanjut' : 'Run'}
           </button>
         )}
-        <button type="button" className="btn" onClick={reset} disabled={status === 'stopped'}>
-          <Icon name="stop" /> Reset
+        <button type="button" className="btn btn-icon" onClick={reset} disabled={status === 'stopped'} title="Reset simulasi" aria-label="Reset">
+          <Icon name="stop" />
         </button>
-        <label className="speed">
-          Kecepatan
-          <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+        <label className="speed" title="Kecepatan simulasi">
+          <select aria-label="Kecepatan" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
             {SPEEDS.map((s) => (
               <option key={s} value={s}>
                 {s}×
@@ -113,29 +113,31 @@ export default function Toolbar() {
         </label>
         <button
           type="button"
-          className="btn"
+          className="btn btn-icon"
           title="Kosongkan kanvas"
+          aria-label="Kosongkan"
           onClick={() => {
             reset()
             clear()
             toast.info('Kanvas dikosongkan', { label: 'Urungkan', run: useEditor.getState().undo })
           }}
         >
-          <Icon name="trash" /> Kosongkan
+          <Icon name="trash" />
         </button>
         <button
           type="button"
-          className="btn"
-          title="Unduh proyek sebagai file"
+          className="btn btn-icon"
+          title="Ekspor proyek ke file"
+          aria-label="Ekspor"
           onClick={() => {
             const { name: n, nodes, edges } = useEditor.getState()
             downloadProject(toProject(n, nodes, edges))
           }}
         >
-          <Icon name="download" /> Ekspor
+          <Icon name="download" />
         </button>
-        <button type="button" className="btn" title="Buka file proyek" onClick={() => fileRef.current?.click()}>
-          <Icon name="upload" /> Impor
+        <button type="button" className="btn btn-icon" title="Impor file proyek" aria-label="Impor" onClick={() => fileRef.current?.click()}>
+          <Icon name="upload" />
         </button>
         <input
           ref={fileRef}
@@ -147,6 +149,16 @@ export default function Toolbar() {
             e.target.value = ''
           }}
         />
+        <button
+          type="button"
+          className={`btn btn-icon ${rightOpen ? 'is-on' : ''}`}
+          onClick={toggleRight}
+          aria-pressed={rightOpen}
+          aria-label="Panel properti"
+          title={`${rightOpen ? 'Tutup' : 'Buka'} panel properti ( ] )`}
+        >
+          <Icon name="panelRight" />
+        </button>
       </div>
     </header>
   )

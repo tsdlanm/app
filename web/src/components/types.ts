@@ -56,7 +56,6 @@ export interface ComponentDef {
   kind: string
   label: string
   category: Category
-  icon: string
   description: string
   unit?: string
   view: NodeView

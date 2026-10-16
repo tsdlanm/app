@@ -53,6 +53,11 @@ interface EditorState extends Snapshot {
   addNode: (kind: string, position: { x: number; y: number }) => void
   updateProp: (id: string, key: string, value: PropValue) => void
   removeNode: (id: string) => void
+  /** Deletes every selected component and wire as one undo step. */
+  removeSelected: () => void
+  selectAll: () => void
+  /** Copies the selected components, and the wires between them, slightly offset. */
+  duplicateSelected: () => void
   undo: () => void
   redo: () => void
   load: (p: Project) => void
@@ -149,6 +154,39 @@ export const useEditor = create<EditorState>((set, get) => {
         nodes: s.nodes.filter((n) => n.id !== id),
         edges: s.edges.filter((e) => e.source !== id && e.target !== id),
       }))
+    },
+
+    removeSelected: () => {
+      const { nodes, edges } = get()
+      const gone = new Set(nodes.filter((n) => n.selected).map((n) => n.id))
+      const goneEdges = new Set(edges.filter((e) => e.selected).map((e) => e.id))
+      if (gone.size === 0 && goneEdges.size === 0) return
+      pushHistory()
+      set({
+        nodes: nodes.filter((n) => !gone.has(n.id)),
+        edges: edges.filter((e) => !goneEdges.has(e.id) && !gone.has(e.source) && !gone.has(e.target)),
+      })
+    },
+
+    selectAll: () => set((s) => ({ nodes: s.nodes.map((n) => (n.selected ? n : { ...n, selected: true })) })),
+
+    duplicateSelected: () => {
+      const { nodes, edges } = get()
+      const picked = nodes.filter((n) => n.selected)
+      if (picked.length === 0) return
+      pushHistory()
+      const ids = new Map(picked.map((n) => [n.id, newId()]))
+      const copies: IotNode[] = picked.map((n) => ({
+        ...n,
+        id: ids.get(n.id)!,
+        position: { x: n.position.x + 40, y: n.position.y + 40 },
+        data: { ...n.data, props: { ...n.data.props } },
+        selected: true,
+      }))
+      const wires: Edge[] = edges
+        .filter((e) => ids.has(e.source) && ids.has(e.target))
+        .map((e) => ({ ...e, id: `e-${newId()}`, source: ids.get(e.source)!, target: ids.get(e.target)!, selected: false }))
+      set({ nodes: [...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)), ...copies], edges: [...edges, ...wires] })
     },
 
     undo: () => {

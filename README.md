@@ -11,7 +11,10 @@ Aplikasi web untuk merancang sistem IoT secara visual lalu menyimulasikannya lan
 - Kabel divalidasi: tipe harus cocok (angka ke angka, ya/tidak ke ya/tidak), satu kabel per masukan, tanpa loop
 - **3 papan mikrokontroler dengan gambar dan pin asli:** Arduino Uno, ESP32 DevKit (30 pin), Raspberry Pi Pico (40 pin). Tiap papan diprogram dengan bahasa mini (lihat di bawah)
 - 15 komponen lain: sensor (suhu, kelembapan, cahaya, gerak, tombol), logika (pembanding, AND, OR, NOT, timer), aktuator (LED, kipas, buzzer), tampilan (gauge, grafik)
-- Panel properti untuk mengatur tiap komponen
+- Panel properti untuk mengatur tiap komponen. Untuk papan mikrokontroler, programnya diedit di **editor kode** penuh (CodeMirror): nomor baris, pewarnaan sintaks, saran nama pin (`Ctrl+Space`), dan kesalahan digarisbawahi di barisnya
+- **Alat pilih dan tangan:** seret area kosong untuk memilih banyak komponen sekaligus lalu hapus, duplikat, atau pindahkan bersama; alat tangan (atau `Space` + seret) menggeser kanvas
+- **Zoom halus** dengan roda mouse ke arah kursor (10%–300%), slider zoom, dan tombol "tampilkan semua"
+- **Panel kiri dan kanan bisa ditutup** (`[` dan `]`) dan **lebarnya bisa ditarik**; pilihan ini diingat setelah reload
 - Simulasi Run / Pause / Reset dengan kecepatan 1×, 2×, 5×; pengeditan saat berjalan langsung berlaku
 - Undo / redo (Ctrl+Z, Ctrl+Shift+Z), simpan otomatis di browser, ekspor/impor file `.iot.json`, empat contoh rangkaian, pencarian komponen
 - Kabel yang ditolak menjelaskan alasannya (tipe tidak cocok, masukan sudah terpakai, membentuk loop)
@@ -39,6 +42,17 @@ D12 = time % 2 < 1
 ```
 
 Operator `+ - * / %`, `> >= < <= == !=`, `and or not`, dan kurung. `time` adalah waktu simulasi dalam detik. Hanya pin keluaran yang bisa diisi. Program diurai sendiri, tanpa `eval`. Ini bukan kode Arduino atau MicroPython sungguhan; emulasi kode asli (`avr8js`) ada di rencana berikutnya.
+
+## Pintasan
+
+| Aksi | Tombol |
+| --- | --- |
+| Alat pilih / alat tangan | `V` / `H` |
+| Geser kanvas sementara | tahan `Space` dan seret |
+| Zoom | roda mouse (`Shift` + roda menggeser ke samping) |
+| Hapus / duplikat / pilih semua | `Del` / `Ctrl+D` / `Ctrl+A` |
+| Urungkan / ulangi | `Ctrl+Z` / `Ctrl+Shift+Z` |
+| Tutup atau buka panel kiri / kanan | `[` / `]` |
 
 Rencana lengkap dan yang belum dikerjakan ada di [docs/BLUEPRINT.md](docs/BLUEPRINT.md).
 
@@ -69,7 +83,7 @@ web/src/
     boards/     gambar SVG papan mikrokontroler
   sim/          engine simulasi, runner, dan bahasa program papan (firmware.ts)
   editor/       kanvas, palet, panel properti, toolbar, store, penyimpanan
-  ui/           ikon dan notifikasi
+  ui/           ikon, notifikasi, dan tata letak panel (lebar, buka/tutup)
   pages/        halaman editor
 server/         Go API (kerangka)
 docs/           blueprint
