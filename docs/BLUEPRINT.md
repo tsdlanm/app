@@ -59,7 +59,7 @@ Contoh rangkaian yang harus bisa dibuat: **Sensor suhu → Pembanding (> 30) →
 └────────────────────────────┬────────────────────────────┘
                              │ REST/JSON (cookie sesi)
                      ┌───────▼────────┐
-                     │   Go API       │
+                     │ API (TypeScript)│
                      └───────┬────────┘
                      ┌───────▼────────┐
                      │  PostgreSQL    │
@@ -68,6 +68,10 @@ Contoh rangkaian yang harus bisa dibuat: **Sensor suhu → Pembanding (> 30) →
 
 - **Simulasi 100% di browser.** Server tidak menjalankan simulasi. Server hanya mengurus akun dan menyimpan proyek.
 - **Proyek disimpan utuh sebagai satu dokumen JSON** (komponen + kabel + posisi). Tidak dipecah ke banyak tabel.
+
+**Kenapa backend TypeScript, bukan Go.** Validasi format proyek (`parseProject`), definisi komponen dan pinout papan, bahasa program papan, dan mesin simulasi semuanya sudah ditulis dalam TypeScript. Backend yang memvalidasi proyek tersimpan atau menjalankan simulasi tanpa browser (tes, thumbnail) bisa memakai kode yang sama persis. Dengan Go, semua itu harus ditulis ulang dan dua versi bisa saling menyimpang. Emulator yang direncanakan (`avr8js`, `rp2040js`) juga berbasis JavaScript. Go tetap pilihan bagus kalau nanti perlu gateway untuk ribuan perangkat IoT sungguhan (MQTT/WebSocket), sebagai layanan terpisah.
+
+**Langkah berikutnya untuk berbagi kode:** pindahkan `components/`, `sim/`, dan `editor/serialize.ts` ke paket bersama (misalnya `packages/core`) yang dipakai `web/` dan `server/`. Belum dilakukan; kerangka server sekarang berdiri sendiri.
 
 ## 3. Tech stack
 
@@ -78,10 +82,12 @@ Contoh rangkaian yang harus bisa dibuat: **Sensor suhu → Pembanding (> 30) →
 | State | Zustand | Ringan, mudah dipakai untuk undo/redo |
 | UI | Tailwind CSS + shadcn/ui | Komponen panel/dialog siap pakai |
 | Grafik | uPlot | Cepat untuk data real-time |
-| Backend | Go, `net/http` (routing bawaan Go 1.22+) | Tanpa framework, cukup untuk REST |
+| Backend | TypeScript di Node 22+, [Hono](https://hono.dev) | Satu bahasa dengan frontend; framework kecil dan berbasis standar web |
+| Validasi | zod | Konfigurasi dan (nanti) isi request divalidasi dengan skema yang sama dengan tipenya |
 | Database | PostgreSQL 16 | Kolom `JSONB` untuk dokumen proyek |
-| Akses DB | `pgx` + `sqlc` | Query SQL biasa yang di-generate jadi kode Go bertipe |
-| Migrasi | `goose` | File SQL sederhana |
+| Akses DB | `pg` + Drizzle ORM | Skema dalam TypeScript, query bertipe |
+| Migrasi | `drizzle-kit` | SQL migrasi dihasilkan dari skema |
+| Tes | Vitest | Sama dengan frontend |
 | Lokal | Docker Compose (Postgres) | Satu perintah untuk menyalakan DB |
 
 ## 4. Struktur repo
@@ -95,13 +101,16 @@ Contoh rangkaian yang harus bisa dibuat: **Sensor suhu → Pembanding (> 30) →
 │       ├── sim/            # engine simulasi + Web Worker
 │       ├── api/            # client ke backend
 │       └── pages/          # login, daftar proyek, editor
-├── server/                 # Go API
-│   ├── cmd/server/         # main
-│   ├── internal/
-│   │   ├── auth/
-│   │   ├── project/
-│   │   └── db/             # hasil generate sqlc
-│   └── migrations/
+├── server/                 # API TypeScript (Hono)
+│   ├── src/
+│   │   ├── index.ts        # menyalakan server, shutdown rapi
+│   │   ├── app.ts          # menyusun aplikasi HTTP (mudah dites)
+│   │   ├── config.ts       # membaca dan memvalidasi environment
+│   │   ├── routes/         # endpoint
+│   │   ├── modules/        # auth/, projects/ (kosong, M3 dan M4)
+│   │   └── db/             # koneksi dan skema Drizzle
+│   ├── test/
+│   └── drizzle/            # migrasi SQL hasil drizzle-kit
 ├── docs/
 └── docker-compose.yml
 ```
