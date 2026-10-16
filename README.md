@@ -3,7 +3,7 @@
 Aplikasi web untuk merancang sistem IoT secara visual lalu menyimulasikannya langsung di browser.
 
 - **Frontend:** React + TypeScript (Vite), React Flow, Zustand
-- **Backend:** Go + PostgreSQL (belum dipakai; editor saat ini berjalan penuh di browser)
+- **Backend:** TypeScript (Hono) + PostgreSQL + Drizzle. Baru kerangka, belum dipakai; editor saat ini berjalan penuh di browser
 
 ## Yang sudah bisa
 
@@ -68,12 +68,20 @@ npm test        # unit test engine simulasi dan validasi proyek
 npm run build
 ```
 
-Backend (Go 1.24+, belum dipakai editor) dan PostgreSQL:
+Backend (Node.js 22.9+) dan PostgreSQL. Baru kerangka: `GET /api/health` dan `GET /api/ready` (cek koneksi database):
 
 ```sh
-docker compose up -d                 # PostgreSQL di localhost:5432
-cd server && go run ./cmd/server     # API di localhost:8080, GET /api/health
+docker compose up -d                  # PostgreSQL di localhost:5432
+cd server
+npm install
+cp ../.env.example .env               # dibaca otomatis oleh `npm run dev`
+npm run dev                           # API di localhost:8080
+npm test                              # unit test
+npm run typecheck && npm run build
+npm run db:generate                   # buat migrasi dari src/db/schema.ts
 ```
+
+Server berjalan tanpa `DATABASE_URL`; hanya `/api/ready` yang menjawab 503.
 
 ## Struktur
 
@@ -85,6 +93,6 @@ web/src/
   editor/       kanvas, palet, panel properti, toolbar, store, penyimpanan
   ui/           ikon, notifikasi, dan tata letak panel (lebar, buka/tutup)
   pages/        halaman editor
-server/         Go API (kerangka)
+server/         API TypeScript (Hono + Drizzle), baru kerangka
 docs/           blueprint
 ```
